@@ -1,115 +1,75 @@
 package main
 
 import (
+	"github.com/RyuseiNomi/GinTutorial/db"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
-	_ "github.com/mattn/go-sqlite3"
 )
-
-type Todo struct {
-	gorm.Model
-	Text   string
-	Status string
-}
-
-/**
- * DBにレコードを追加する
- */
-func init() {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	db.AutoMigrate(&Todo{})
-	defer db.Close()
-}
-
-/**
- * DBにレコードを追加する
- * @param text   string TODOの内容
- * @param status string TODOのステータス
- */
-func insert(text string, status string) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	db.Create(&Todo{Text: text, Status: status})
-	defer db.Close()
-}
-
-/**
- * 対象のDBのレコードの内容を更新する
- * @param id     int    更新対象のTODOレコードのID
- * @param text   string TODOの内容
- * @param status string TODOのステータス
- */
-func update(id int, text string, status string) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	var todo Todo
-	db.First(&todo, id)
-	todo.Text = text
-	todo.Status = status
-	db.Save(&todo)
-	db.Close()
-}
-
-/**
- * 対象のDBのレコードを削除する
- * @param id int 更新対象のTODOレコードのID
- */
-func delete(id int) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	var todo Todo
-	db.First(&todo, id)
-	db.Delete(&todo)
-	db.Close()
-}
-
-/**
- * TODOレコードを作成日順に全て取得する
- * @return array Todo DBに保存されている全てのTodo
- */
-func findAll() []Todo {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	var todos []Todo
-	db.Order("created_at desc").Find(&todos)
-	db.Close()
-	return todos
-}
-
-/**
- * 指定のTODOレコードを1件取得する
- * @param  int  id 取得したいレコードのID
- * @return Todo DBに保存されているTODO
- */
-func findOne(id int) Todo {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
-	}
-	var todo Todo
-	db.First(&todo, id)
-	db.Close()
-	return todo
-}
 
 func main() {
 	router := gin.Default()
 	router.LoadHTMLGlob("templates/*.html")
 
-	data := "Hello Go/Gin!!"
+	// DBの初期化
+	db.Init()
+
+	// Index
 	router.GET("/", func(ctx *gin.Context) {
-		ctx.HTML(200, "index.html", gin.H{"data": data})
+		todos := db.GetAll()
+		ctx.HTML(200, "index.html", gin.H{"todos": todos})
+	})
+
+	// Create
+	router.POST("/new", func(ctx *gin.Context) {
+		text := ctx.PostForm("text")
+		status := ctx.PostForm("status")
+		db.Insert(text, status)
+		ctx.Redirect(302, "/")
+	})
+
+	// Detail
+	router.GET("/detail/:id", func(ctx *gin.Context) {
+		n := ctx.Param("id")
+		id, err := strconv.Atoi(n)
+		if err != nil {
+			panic(err)
+		}
+		todo := db.FetchOne(id)
+		ctx.HTML(200, "detail.html", gin.H{"todo": todo})
+	})
+
+	// Update
+	router.POST("/update/:id", func(ctx *gin.Context) {
+		n := ctx.Param("id")
+		id, err := strconv.Atoi(n)
+		if err != nil {
+			panic(err)
+		}
+		text := ctx.PostForm("text")
+		status := ctx.PostForm("status")
+		db.Update(id, text, status)
+		ctx.Redirect(302, "/")
+	})
+
+	// Confirm Delete
+	router.GET("/delete_check/:id", func(ctx *gin.Context) {
+		n := ctx.Param("id")
+		id, err := strconv.Atoi(n)
+		if err != nil {
+			panic(err)
+		}
+		todo := db.FetchOne()
+		ctx.HTML(200, "delete.html", gin.H{"todo": todo})
+	})
+
+	// Delete
+	router.POST("/delete/:id", func(ctx *gin.Context) {
+		n := ctx.Param("id")
+		id, err := strconv.Atoi(n)
+		if err != nil {
+			panic(err)
+		}
+		db.Delete(id)
+		ctx.Redirect(302, "/")
 	})
 
 	router.Run()
