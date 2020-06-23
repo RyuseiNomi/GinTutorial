@@ -1,6 +1,8 @@
 package db
 
 import (
+	"log"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -17,7 +19,7 @@ type Todo struct {
 func Init() {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	db.AutoMigrate(&Todo{})
 	defer db.Close()
@@ -31,7 +33,7 @@ func Init() {
 func Insert(text string, status string) {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	db.Create(&Todo{Text: text, Status: status})
 	defer db.Close()
@@ -46,7 +48,7 @@ func Insert(text string, status string) {
 func Update(id int, text string, status string) {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	var todo Todo
 	db.First(&todo, id)
@@ -63,7 +65,7 @@ func Update(id int, text string, status string) {
 func Delete(id int) {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	var todo Todo
 	db.First(&todo, id)
@@ -75,10 +77,10 @@ func Delete(id int) {
  * TODOレコードを作成日順に全て取得する
  * @return array Todo DBに保存されている全てのTodo
  */
-func FindAll() []Todo {
+func FetchAll() []Todo {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	var todos []Todo
 	db.Order("created_at desc").Find(&todos)
@@ -94,7 +96,7 @@ func FindAll() []Todo {
 func FetchOne(id int) Todo {
 	db, err := gorm.Open("sqlite3", "test.sqlite3")
 	if err != nil {
-		panic("DBの初期化に失敗しました。%v", err)
+		log.Printf("DBの初期化に失敗しました。%v", err)
 	}
 	var todo Todo
 	db.First(&todo, id)

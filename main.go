@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/RyuseiNomi/GinTutorial/db"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +17,7 @@ func main() {
 
 	// Index
 	router.GET("/", func(ctx *gin.Context) {
-		todos := db.GetAll()
+		todos := db.FetchAll()
 		ctx.HTML(200, "index.html", gin.H{"todos": todos})
 	})
 
@@ -31,7 +34,7 @@ func main() {
 		n := ctx.Param("id")
 		id, err := strconv.Atoi(n)
 		if err != nil {
-			panic(err)
+			log.Printf("IDの変換に失敗しました。%v", err)
 		}
 		todo := db.FetchOne(id)
 		ctx.HTML(200, "detail.html", gin.H{"todo": todo})
@@ -42,7 +45,7 @@ func main() {
 		n := ctx.Param("id")
 		id, err := strconv.Atoi(n)
 		if err != nil {
-			panic(err)
+			log.Printf("IDの変換に失敗しました。%v", err)
 		}
 		text := ctx.PostForm("text")
 		status := ctx.PostForm("status")
@@ -55,9 +58,9 @@ func main() {
 		n := ctx.Param("id")
 		id, err := strconv.Atoi(n)
 		if err != nil {
-			panic(err)
+			log.Printf("IDの変換に失敗しました。%v", err)
 		}
-		todo := db.FetchOne()
+		todo := db.FetchOne(id)
 		ctx.HTML(200, "delete.html", gin.H{"todo": todo})
 	})
 
@@ -66,7 +69,7 @@ func main() {
 		n := ctx.Param("id")
 		id, err := strconv.Atoi(n)
 		if err != nil {
-			panic(err)
+			log.Printf("IDの変換に失敗しました。%v", err)
 		}
 		db.Delete(id)
 		ctx.Redirect(302, "/")
