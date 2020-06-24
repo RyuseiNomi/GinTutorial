@@ -13,11 +13,11 @@ func main() {
 	router.LoadHTMLGlob("templates/*.html")
 
 	// DBの初期化
-	db.Init()
+	client, context := db.Init()
 
 	// Index
 	router.GET("/", func(ctx *gin.Context) {
-		todos := db.FetchAll()
+		todos := db.FetchAll(context, client)
 		ctx.HTML(200, "index.html", gin.H{"todos": todos})
 	})
 
@@ -25,7 +25,7 @@ func main() {
 	router.POST("/new", func(ctx *gin.Context) {
 		text := ctx.PostForm("text")
 		status := ctx.PostForm("status")
-		db.Insert(text, status)
+		db.Insert(client, context, text, status)
 		ctx.Redirect(302, "/")
 	})
 
@@ -75,5 +75,6 @@ func main() {
 		ctx.Redirect(302, "/")
 	})
 
+	defer client.Close()
 	router.Run()
 }

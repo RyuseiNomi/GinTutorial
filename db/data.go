@@ -1,11 +1,24 @@
 package db
 
 import (
+	"fmt"
 	"log"
+	"reflect"
+
+	"golang.org/x/net/context"
+
+	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+type FirebaseInstance struct {
+	Records []map[string]interface{}
+}
 
 type Todo struct {
 	gorm.Model
@@ -14,15 +27,20 @@ type Todo struct {
 }
 
 /**
- * DBにレコードを追加する
+ * Google Cloud Firestoreの初期化を実行する
  */
-func Init() {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
+func Init() (*firestore.Client, context.Context) {
+	ctx := context.Background()
+	opt := option.WithCredentialsFile("firebase/gintutorial-89639-firebase-adminsdk-ifdrh-d9d477af86.json")
+	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
-		log.Printf("DBの初期化に失敗しました。%v", err)
+		log.Fatal("Database Initialization Error: %v", err)
 	}
-	db.AutoMigrate(&Todo{})
-	defer db.Close()
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		log.Fatal("Database InitializationError: %v", err)
+	}
+	return client, ctx
 }
 
 /**
@@ -30,13 +48,14 @@ func Init() {
  * @param text   string TODOの内容
  * @param status string TODOのステータス
  */
-func Insert(text string, status string) {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
+func Insert(client *firestore.Client, ctx context.Context, text string, status string) {
+	_, _, err := client.Collection("todos").Add(ctx, map[string]interface{}{
+		"text":   text,
+		"status": status,
+	})
 	if err != nil {
-		log.Printf("DBの初期化に失敗しました。%v", err)
+		log.Fatalf("Failed insert record: &v", err)
 	}
-	db.Create(&Todo{Text: text, Status: status})
-	defer db.Close()
 }
 
 /**
@@ -77,14 +96,26 @@ func Delete(id int) {
  * TODOレコードを作成日順に全て取得する
  * @return array Todo DBに保存されている全てのTodo
  */
-func FetchAll() []Todo {
-	db, err := gorm.Open("sqlite3", "test.sqlite3")
-	if err != nil {
-		log.Printf("DBの初期化に失敗しました。%v", err)
-	}
+func FetchAll(ctx context.Context, client *firestore.Client) []Todo {
 	var todos []Todo
-	db.Order("created_at desc").Find(&todos)
-	db.Close()
+	iter := client.Collection("todos").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Failed to load documents: %v", err)
+		}
+		todo := doc.Data()
+		fmt.Println(reflect.TypeOf(todo["text"]))
+		todos = append(
+			todos,
+			Todo{
+				Text:   todo["text"].(string),
+				Status: todo["status"].(string),
+			})
+	}
 	return todos
 }
 
