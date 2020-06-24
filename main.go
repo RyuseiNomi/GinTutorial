@@ -25,7 +25,7 @@ func main() {
 	router.POST("/new", func(ctx *gin.Context) {
 		text := ctx.PostForm("text")
 		status := ctx.PostForm("status")
-		db.Insert(client, context, text, status)
+		db.Insert(context, client, text, status)
 		ctx.Redirect(302, "/")
 	})
 

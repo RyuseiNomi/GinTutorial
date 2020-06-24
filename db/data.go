@@ -1,9 +1,7 @@
 package db
 
 import (
-	"fmt"
 	"log"
-	"reflect"
 
 	"golang.org/x/net/context"
 
@@ -48,7 +46,7 @@ func Init() (*firestore.Client, context.Context) {
  * @param text   string TODOの内容
  * @param status string TODOのステータス
  */
-func Insert(client *firestore.Client, ctx context.Context, text string, status string) {
+func Insert(ctx context.Context, client *firestore.Client, text string, status string) {
 	_, _, err := client.Collection("todos").Add(ctx, map[string]interface{}{
 		"text":   text,
 		"status": status,
@@ -108,7 +106,6 @@ func FetchAll(ctx context.Context, client *firestore.Client) []Todo {
 			log.Fatalf("Failed to load documents: %v", err)
 		}
 		todo := doc.Data()
-		fmt.Println(reflect.TypeOf(todo["text"]))
 		todos = append(
 			todos,
 			Todo{
